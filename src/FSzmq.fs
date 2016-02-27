@@ -39,27 +39,31 @@ module Agent =
   type T<'t> = MailboxProcessor<'t>
   module Socket =
     type S = fszmq.Socket
-    let rec receiver<'t> (s:S) (t:T<'t>) = async {
+    let rec receiver<'t> f s (t:T<'t>) = async {
+      match s with
+        | None -> return! receiver f (Some (f ())) t
+        | Some s ->
+        try
         fszmq.Socket.recv s |> Message.toT<'t> |> t.Post
-        return! receiver s t
+        return! receiver f (Some s) t
+        with e -> printfn "%A" e
       }
-    let rec sender<'t> (s:S) (t:T<'t>) = async {
+    let rec sender<'t> f s (t:T<'t>) = async {
+      match s with
+        | None -> return! sender f (Some (f ())) t
+        | Some s ->
         let! msg = t.Receive ()
         msg |> Message.ofT<'t> |> fszmq.Socket.send s
-        return! sender s t
+        return! sender f (Some s) t
       }
-    let pull (c:Context.T) (m:Machine) (port:int) t = async {
-        use s = fszmq.Context.pull c
-        fszmq.Socket.connect s "tcp://127.0.0.1:5555"
-        return! receiver<'t> s t
-      }
-    let push (c:Context.T) (n:Network) (port:int) t = async {
-        use s = fszmq.Context.push c
-        fszmq.Socket.bind s "tcp://127.0.0.1:5555"
-        return! sender<'t> s t
-      }
+    let pull (c:Context.T) (m:Machine) (port:int) () =
+      fszmq.Context.pull c
+      |> Do (fun s -> fszmq.Socket.connect s (sprintf "tcp://127.0.0.1:%d" port))
+    let push (c:Context.T) (n:Network) (port:int) () =
+      fszmq.Context.push c
+      |> Do (fun s -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" port))
 
-  let pull<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.pull c m port)
-  let push<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.push c n port)
+  let pull<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver (Socket.pull c m port) None)
+  let push<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender (Socket.push c n port) None)
   let send<'t> (message:'t) (t:T<'t>) : unit = t.Post message
   let receive<'t> (t:T<'t>) : 't Async = async { let! msg = t.Receive () in return msg }
