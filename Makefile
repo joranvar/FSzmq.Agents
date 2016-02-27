@@ -17,11 +17,14 @@ vpath %.fs src
 # Assemblies
 Tests.dll = $(call FSHARP_mkDllTarget,test/Tests.dll)
 
+# NuGets
+FsCheck = $(call NUGET_mkNuGetContentsTarget,FsCheck,lib/net45/FsCheck.dll)
+
 # Test assemblies
 UNITTEST = $(call NUNIT_mkTestTarget,$(Tests.dll))
 
 # Dependencies
-$(Tests.dll): test/Tests.fs
+$(Tests.dll): test/Tests.fs $(FsCheck)
 
 .PHONY: all
 all: $(UNITTEST)
