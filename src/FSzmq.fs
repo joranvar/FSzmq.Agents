@@ -88,7 +88,8 @@ module Agent =
     let rec replyer<'t,'u> f s (callback:'t->'u Async) (t:T<ReqRep<'t,'u>>) = async {
       let s = s |> ensureSocket f
       try
-        let! reply = s |> recv |> Async.bind (Message.toT<'t> >> callback)
+        let! request = s |> recv
+        let! reply = request |> Message.toT<'t> |> callback
         do! reply |> Message.ofT<'u> |> send s
         return! replyer f (Some s) callback t
       with
@@ -101,7 +102,8 @@ module Agent =
       try
         let! request, reply = t.Receive ()
         do! request |> Message.ofT<'t> |> send s
-        do! s |> recv |> Async.map (Message.toT<'u> >> reply.Reply)
+        let! result = s |> recv
+        result |> Message.toT<'u> |> reply.Reply
         return! requester f (Some s) t
       with
         | :? System.Threading.ThreadInterruptedException -> ()
