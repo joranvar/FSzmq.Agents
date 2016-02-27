@@ -1,5 +1,9 @@
 namespace FSzmq
 
+[<AutoOpen>]
+module Utils =
+  let Do f x = f x |> ignore ; x
+
 module Message =
   type T = byte array
 
@@ -12,18 +16,17 @@ module Message =
   module BinaryFormatter =
     type T = System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
     let create () : T = T ()
-    let serialize (x:obj) (ms:MemoryStream.T) (t:T) = t.Serialize (ms, x)
-    let deserialize (ms:MemoryStream.T) (t:T) = t.Deserialize ms
+    let serialize (x:obj) (ms:MemoryStream.T) = (create ()).Serialize (ms, x)
+    let deserialize (ms:MemoryStream.T) = (create ()).Deserialize ms
 
   let ofT<'t> (x:'t) : T =
     if box x = null then [||]
     else
       use stream = MemoryStream.create ()
-      BinaryFormatter.create () |> BinaryFormatter.serialize x stream
-      MemoryStream.toArray stream
+      stream |> Do (BinaryFormatter.serialize x) |> MemoryStream.toArray
 
   let toT<'t> (t:T) : 't =
     if Array.length t = 0 then unbox null
     else
       use stream = MemoryStream.ofArray t
-      BinaryFormatter.create () |> BinaryFormatter.deserialize stream |> unbox
+      BinaryFormatter.deserialize stream |> unbox
