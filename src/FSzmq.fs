@@ -58,7 +58,7 @@ module Agent =
         return! receiver f (Some s) t
       with
         | :? System.Threading.ThreadInterruptedException -> return! receiver f (Some s) t
-        | e -> printfn "%A" e
+        | e -> printfn "receiver<%A>: %A" typeof<'t> e
       }
     let rec sender<'t> f s (t:T<'t>) = async {
       let s = s |> ensureSocket f
@@ -67,7 +67,7 @@ module Agent =
         return! sender f (Some s) t
       with
         | :? System.Threading.ThreadInterruptedException -> return! sender f (Some s) t
-        | e -> printfn "%A" e
+        | e -> printfn "sender<%A>: %A" typeof<'t> e
       }
     let pull (c:Context.T) (m:Machine) (port:int) () =
       fszmq.Context.pull c
