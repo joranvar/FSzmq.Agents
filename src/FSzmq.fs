@@ -76,9 +76,9 @@ module Agent =
       fszmq.Context.pub c
       |> Do (fun s -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" port))
 
-  let pull<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver (Socket.pull c m port) None)
-  let push<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender (Socket.push c n port) None)
-  let subscribe<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver (Socket.subscribe c m port) None)
-  let publish<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender (Socket.publish c n port) None)
+  let pull<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver<'t> (Socket.pull c m port) None)
+  let push<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender<'t> (Socket.push c n port) None)
+  let subscribe<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver<'t> (Socket.subscribe c m port) None)
+  let publish<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender<'t> (Socket.publish c n port) None)
   let send<'t> (message:'t) (t:T<'t>) : unit = t.Post message
   let receive<'t> (t:T<'t>) : 't Async = async { let! msg = t.Receive () in return msg }
