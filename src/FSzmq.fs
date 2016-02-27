@@ -57,8 +57,9 @@ module Agent =
         do! s |> recv |> Async.map (Message.toT<'t> >> t.Post)
         return! receiver f (Some s) t
       with
-        | :? System.Threading.ThreadInterruptedException -> return! receiver f (Some s) t
+        | :? System.Threading.ThreadInterruptedException -> ()
         | e -> printfn "receiver<%A>: %A" typeof<'t> e
+      return! receiver f (Some s) t
       }
     let rec sender<'t> f s (t:T<'t>) = async {
       let s = s |> ensureSocket f
@@ -66,8 +67,9 @@ module Agent =
         do! t.Receive () |> Async.bind (Message.ofT<'t> >> send s)
         return! sender f (Some s) t
       with
-        | :? System.Threading.ThreadInterruptedException -> return! sender f (Some s) t
+        | :? System.Threading.ThreadInterruptedException -> ()
         | e -> printfn "sender<%A>: %A" typeof<'t> e
+      return! sender f (Some s) t
       }
     let pull (c:Context.T) (m:Machine) (port:int) () =
       fszmq.Context.pull c
@@ -90,8 +92,9 @@ module Agent =
         do! reply |> Message.ofT<'u> |> send s
         return! replyer f (Some s) callback t
       with
-        | :? System.Threading.ThreadInterruptedException -> return! replyer f (Some s) callback t
+        | :? System.Threading.ThreadInterruptedException -> ()
         | e -> printfn "replyer<%A,%A>: %A" typeof<'t> typeof<'u> e
+      return! replyer f (Some s) callback t
       }
     let rec requester<'t,'u> f s (t:T<ReqRep<'t,'u>>) = async {
       let s = s |> ensureSocket f
@@ -101,8 +104,9 @@ module Agent =
         do! s |> recv |> Async.map (Message.toT<'u> >> reply.Reply)
         return! requester f (Some s) t
       with
-        | :? System.Threading.ThreadInterruptedException -> return! requester f (Some s) t
+        | :? System.Threading.ThreadInterruptedException -> ()
         | e -> printfn "requester<%A,%A>: %A" typeof<'t> typeof<'u> e
+      return! requester f (Some s) t
       }
     let request (c:Context.T) (m:Machine) (port:int) () =
       fszmq.Context.req c
