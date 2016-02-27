@@ -43,18 +43,24 @@ module Agent =
       match s with
         | None -> return! receiver f (Some (f ())) t
         | Some s ->
-        try
-        fszmq.Socket.recv s |> Message.toT<'t> |> t.Post
-        return! receiver f (Some s) t
-        with e -> printfn "%A" e
+          try
+            fszmq.Socket.recv s |> Message.toT<'t> |> t.Post
+            return! receiver f (Some s) t
+          with
+            | :? System.Threading.ThreadInterruptedException -> return! receiver f (Some s) t
+            | e -> printfn "%A" e
       }
     let rec sender<'t> f s (t:T<'t>) = async {
       match s with
         | None -> return! sender f (Some (f ())) t
         | Some s ->
-        let! msg = t.Receive ()
-        msg |> Message.ofT<'t> |> fszmq.Socket.send s
-        return! sender f (Some s) t
+          try
+            let! msg = t.Receive ()
+            msg |> Message.ofT<'t> |> fszmq.Socket.send s
+            return! sender f (Some s) t
+          with
+            | :? System.Threading.ThreadInterruptedException -> return! receiver f (Some s) t
+            | e -> printfn "%A" e
       }
     let pull (c:Context.T) (m:Machine) (port:int) () =
       fszmq.Context.pull c
