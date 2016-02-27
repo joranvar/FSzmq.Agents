@@ -1,5 +1,5 @@
 module Unit
 type TestAttribute = NUnit.Framework.TestAttribute
 
-[<Test>] let success () = () ;;
-[<Test>] let fail () = if true then failwith "Wrong" else () ;;
+let [<Test>] success () = ()
+let [<Test>] fail () = if true then failwith "Wrong" else ()
