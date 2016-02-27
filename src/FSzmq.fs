@@ -27,3 +27,17 @@ module Message =
   let toT<'t> (t:T) : 't =
     if Array.length t = 0 then unbox null
     else t |> MemoryStream.ofArray |> DisposingDo BinaryFormatter.deserialize |> unbox
+
+module Context =
+  type T = fszmq.Context
+  let create () = new T ()
+
+type Machine = | Localhost
+type Network = | Localhost
+
+module Agent =
+  type T = unit
+  let subscribe (c:Context.T) (m:Machine) (port:int) : T = ()
+  let publish (c:Context.T) (n:Network) (port:int) : T = ()
+  let send<'t> (message:'t) (t:T) : unit = ()
+  let receiveMany<'t> (t:T) : 't list = []

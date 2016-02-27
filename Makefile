@@ -21,13 +21,15 @@ FSzmq.dll = $(call FSHARP_mkDllTarget,FSzmq.dll)
 
 # NuGets
 FsCheck = $(call NUGET_mkNuGetContentsTarget,FsCheck,lib/net45/FsCheck.dll)
+fszmq = $(call NUGET_mkNuGetContentsTarget,fszmq,lib/net40/fszmq.dll)
 
 # Test assemblies
 UNITTEST = $(call NUNIT_mkTestTarget,$(Tests.dll))
 
 # Dependencies
-$(Tests.dll): test/Tests.fs $(FsCheck) $(FSzmq.dll)
-$(FSzmq.dll): FSzmq.fs
+$(Tests.dll): test/Tests.fs $(FsCheck) $(FSzmq.dll) $(fszmq) /nix/store/6p5jbgy54yanvx22m75c1xan4gn2y3b9-zeromq-4.1.4/lib/libzmq.so
+$(FSzmq.dll): FSzmq.fs $(fszmq) /nix/store/6p5jbgy54yanvx22m75c1xan4gn2y3b9-zeromq-4.1.4/lib/libzmq.so
+
 
 .PHONY: all
 all: $(UNITTEST)
