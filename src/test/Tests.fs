@@ -21,7 +21,7 @@ module Property =
   let [<Test>] ``A message sent through a publisher agent can be received`` () =
     let subscriber = FSzmq.Agent.subscribe context FSzmq.Machine.Localhost 12346
     let publisher = FSzmq.Agent.publish context FSzmq.Network.Localhost 12346
+    Async.Sleep 2000 |> Async.RunSynchronously
     property (fun x -> publisher |> FSzmq.Agent.send x; true)
     property (fun x -> publisher |> FSzmq.Agent.send x; true)
-    subscriber |> FSzmq.Agent.receive |> Async.RunSynchronously
-    ()
+    subscriber |> FSzmq.Agent.receive |> Async.RunSynchronously |> ignore
