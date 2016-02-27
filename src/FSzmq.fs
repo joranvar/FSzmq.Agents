@@ -3,7 +3,7 @@ namespace FSzmq
 [<AutoOpen>]
 module Utils =
   let Do f x = f x |> ignore ; x
-  let DisposingDo f x = use x = x in f x
+  let DisposingDo f (x:#System.IDisposable) = let result = f x in x.Dispose () ; result
 
 module Message =
   type T = byte array
