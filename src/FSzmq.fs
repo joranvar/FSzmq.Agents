@@ -3,6 +3,7 @@ namespace FSzmq
 [<AutoOpen>]
 module Utils =
   let Do f x = f x |> ignore ; x
+  let DisposingDo f x = use x = x in f x
 
 module Message =
   type T = byte array
@@ -21,12 +22,8 @@ module Message =
 
   let ofT<'t> (x:'t) : T =
     if box x = null then [||]
-    else
-      use stream = MemoryStream.create ()
-      stream |> Do (BinaryFormatter.serialize x) |> MemoryStream.toArray
+    else MemoryStream.create () |> Do (BinaryFormatter.serialize x) |> DisposingDo MemoryStream.toArray
 
   let toT<'t> (t:T) : 't =
     if Array.length t = 0 then unbox null
-    else
-      use stream = MemoryStream.ofArray t
-      BinaryFormatter.deserialize stream |> unbox
+    else t |> MemoryStream.ofArray |> DisposingDo BinaryFormatter.deserialize |> unbox
