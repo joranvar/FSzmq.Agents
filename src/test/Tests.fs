@@ -13,14 +13,14 @@ module Property =
   let context = FSzmq.Context.create ()
 
   let [<Test>] ``A message sent through an agent stays the same`` () =
-    let puller = FSzmq.Agent.pull context FSzmq.Machine.Localhost 12345
-    let pusher = FSzmq.Agent.push context FSzmq.Network.Localhost 12345
+    let puller = FSzmq.Agent.startPuller context FSzmq.Machine.Localhost 12345
+    let pusher = FSzmq.Agent.startPusher context FSzmq.Network.Localhost 12345
     property (fun x -> pusher |> FSzmq.Agent.send x
                        puller |> FSzmq.Agent.receive |> Async.RunSynchronously = x)
 
   let [<Test>] ``A message sent through a publisher agent can be received`` () =
-    let subscriber = FSzmq.Agent.subscribe context FSzmq.Machine.Localhost 12346
-    let publisher = FSzmq.Agent.publish context FSzmq.Network.Localhost 12346
+    let subscriber = FSzmq.Agent.startSubscriber context FSzmq.Machine.Localhost 12346
+    let publisher = FSzmq.Agent.startPublisher context FSzmq.Network.Localhost 12346
     Async.Sleep 2000 |> Async.RunSynchronously
     property (fun x -> publisher |> FSzmq.Agent.send x; true)
     property (fun x -> publisher |> FSzmq.Agent.send x; true)
