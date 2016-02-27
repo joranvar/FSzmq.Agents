@@ -10,6 +10,7 @@ NUGET_nugetDir ?= lib/NuGet
 include $(MAKE_utilsDir)/NuGet.mk
 NUNIT_testDir ?= test
 include $(MAKE_utilsDir)/NUnit.mk
+FSHARP_flags  ?= -g --warnaserror -O --resident
 include $(MAKE_utilsDir)/FSharp.mk
 
 vpath %.fs src
