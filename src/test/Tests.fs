@@ -12,3 +12,6 @@ module Property =
 
   let [<Test>] ``A list reversed twice stays the same`` () =
     property (fun l -> (List.rev << List.rev) l = l)
+
+  let [<Test>] ``A list reversed once does not stay the same`` () =
+    property (fun l -> (List.rev) l <> l)
