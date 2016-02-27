@@ -82,10 +82,41 @@ module Agent =
     let publish (c:Context.T) (n:Network) (port:int) () =
       fszmq.Context.pub c
       |> Do (fun s -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" port)), System.Threading.SynchronizationContext.Current
+    type ReqRep<'t,'u> = 't * AsyncReplyChannel<'u>
+    let rec replyer<'t,'u> f s (callback:'t->'u Async) (t:T<ReqRep<'t,'u>>) = async {
+      let s = s |> ensureSocket f
+      try
+        let! reply = s |> recv |> Async.bind (Message.toT<'t> >> callback)
+        do! reply |> Message.ofT<'u> |> send s
+        return! replyer f (Some s) callback t
+      with
+        | :? System.Threading.ThreadInterruptedException -> return! replyer f (Some s) callback t
+        | e -> printfn "replyer<%A,%A>: %A" typeof<'t> typeof<'u> e
+      }
+    let rec requester<'t,'u> f s (t:T<ReqRep<'t,'u>>) = async {
+      let s = s |> ensureSocket f
+      try
+        let! request, reply = t.Receive ()
+        do! request |> Message.ofT<'t> |> send s
+        do! s |> recv |> Async.map (Message.toT<'u> >> reply.Reply)
+        return! requester f (Some s) t
+      with
+        | :? System.Threading.ThreadInterruptedException -> return! requester f (Some s) t
+        | e -> printfn "requester<%A,%A>: %A" typeof<'t> typeof<'u> e
+      }
+    let request (c:Context.T) (m:Machine) (port:int) () =
+      fszmq.Context.req c
+      |> Do (fun s -> fszmq.Socket.connect s (sprintf "tcp://127.0.0.1:%d" port)), System.Threading.SynchronizationContext.Current
+    let reply (c:Context.T) (n:Network) (port:int) () =
+      fszmq.Context.rep c
+      |> Do (fun s -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" port)), System.Threading.SynchronizationContext.Current
 
   let startPuller<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver<'t> (Socket.pull c m port) None)
   let startPusher<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender<'t> (Socket.push c n port) None)
   let startSubscriber<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver<'t> (Socket.subscribe c m port) None)
   let startPublisher<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender<'t> (Socket.publish c n port) None)
+  let startRequester<'t,'u> (c:Context.T) (m:Machine) (port:int) : T<Socket.ReqRep<'t,'u>> = T<Socket.ReqRep<'t,'u>>.Start (Socket.requester<'t,'u> (Socket.request c m port) None)
+  let startReplyer<'t,'u> (c:Context.T) (n:Network) (port:int) (callback:'t->'u Async) : T<Socket.ReqRep<'t,'u>> = T<Socket.ReqRep<'t,'u>>.Start (Socket.replyer<'t,'u> (Socket.reply c n port) None callback)
   let send<'t> (message:'t) (t:T<'t>) : unit = t.Post message
   let receive<'t> (t:T<'t>) : 't Async = t.Receive ()
+  let request<'t,'u> (message:'t) (t:T<Socket.ReqRep<'t,'u>>) : 'u Async = t.PostAndAsyncReply (fun c -> message, c)
