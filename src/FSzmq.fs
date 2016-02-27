@@ -5,6 +5,9 @@ module Utils =
   let Do f x = f x |> ignore ; x
   let DisposingDo f (x:#System.IDisposable) = let result = f x in x.Dispose () ; result
 
+module Async =
+  let map f x = async { let! result = x in return f result }
+
 module Message =
   type T = byte array
 
@@ -55,8 +58,7 @@ module Agent =
         | None -> return! sender f (Some (f ())) t
         | Some s ->
           try
-            let! msg = t.Receive ()
-            msg |> Message.ofT<'t> |> fszmq.Socket.send s
+            do! t.Receive () |> Async.map (Message.ofT<'t> >> fszmq.Socket.send s)
             return! sender f (Some s) t
           with
             | :? System.Threading.ThreadInterruptedException -> return! receiver f (Some s) t
