@@ -83,4 +83,4 @@ module Agent =
   let subscribe<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver<'t> (Socket.subscribe c m port) None)
   let publish<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender<'t> (Socket.publish c n port) None)
   let send<'t> (message:'t) (t:T<'t>) : unit = t.Post message
-  let receive<'t> (t:T<'t>) : 't Async = async { let! msg = t.Receive () in return msg }
+  let receive<'t> (t:T<'t>) : 't Async = t.Receive ()
