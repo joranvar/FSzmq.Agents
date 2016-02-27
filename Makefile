@@ -15,13 +15,13 @@ include $(MAKE_utilsDir)/FSharp.mk
 vpath %.fs src
 
 # Assemblies
-Unit.dll = $(call FSHARP_mkDllTarget,test/Unit.dll)
+Tests.dll = $(call FSHARP_mkDllTarget,test/Tests.dll)
 
 # Test assemblies
-UNITTEST = $(call NUNIT_mkTestTarget,$(Unit.dll))
+UNITTEST = $(call NUNIT_mkTestTarget,$(Tests.dll))
 
 # Dependencies
-$(Unit.dll): test/Unit.fs
+$(Tests.dll): test/Tests.fs
 
 .PHONY: all
 all: $(UNITTEST)

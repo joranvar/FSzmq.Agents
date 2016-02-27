@@ -1,4 +1,4 @@
-module Unit
+module Tests
 type TestAttribute = NUnit.Framework.TestAttribute
 
 let [<Test>] success () = ()
