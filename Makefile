@@ -17,6 +17,7 @@ vpath %.fs src
 
 # Assemblies
 Tests.dll = $(call FSHARP_mkDllTarget,test/Tests.dll)
+FSzmq.dll = $(call FSHARP_mkDllTarget,FSzmq.dll)
 
 # NuGets
 FsCheck = $(call NUGET_mkNuGetContentsTarget,FsCheck,lib/net45/FsCheck.dll)
@@ -25,7 +26,8 @@ FsCheck = $(call NUGET_mkNuGetContentsTarget,FsCheck,lib/net45/FsCheck.dll)
 UNITTEST = $(call NUNIT_mkTestTarget,$(Tests.dll))
 
 # Dependencies
-$(Tests.dll): test/Tests.fs $(FsCheck)
+$(Tests.dll): test/Tests.fs $(FsCheck) $(FSzmq.dll)
+$(FSzmq.dll): FSzmq.fs
 
 .PHONY: all
 all: $(UNITTEST)
