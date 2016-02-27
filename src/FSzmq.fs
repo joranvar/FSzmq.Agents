@@ -8,6 +8,9 @@ module Utils =
 module Async =
   let map f x = async { let! result = x in return f result }
 
+module Option =
+  let orLazyDefault f = function None -> f () | Some v -> v
+
 module Message =
   type T = byte array
 
