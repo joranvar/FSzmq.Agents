@@ -1,0 +1,3 @@
+[submodule "Makefiles"]
+	path = Makefiles
+	url = git@github.com:joranvar/Makefiles
