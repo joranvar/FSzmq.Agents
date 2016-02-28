@@ -47,13 +47,14 @@ module Agent =
   module Socket =
     type S = fszmq.Socket * System.Threading.SynchronizationContext
     type Connection = | Network of Network * int | Machine of Machine * int
-    type Type = | Pull | Push | Sub | Pub | Req | Rep
+    type Type = | Pull | Push | Sub of Message.T list | Pub | Req | Rep
 
     let create (t:Type) (c:Context.T) =
+      let subscribe (channels:Message.T list) (s:fszmq.Socket) = fszmq.Socket.subscribe s (channels |> Array.ofList); s
       c |> match t with
            | Pull -> fszmq.Context.pull
            | Push -> fszmq.Context.push
-           | Sub -> fszmq.Context.sub
+           | Sub channels -> fszmq.Context.sub >> subscribe channels
            | Pub -> fszmq.Context.pub
            | Req -> fszmq.Context.req
            | Rep -> fszmq.Context.rep
@@ -112,8 +113,7 @@ module Agent =
       }
     let pull (c:Context.T) (m:Machine) (port:int) () = c |> create Pull |> connect (Machine (m, port))
     let push (c:Context.T) (n:Network) (port:int) () = c |> create Push |> connect (Network (n, port))
-    let subscribe (c:Context.T) (m:Machine) (port:int) () =
-      c |> create Sub |> Do (fun s -> fszmq.Socket.subscribe s [| [||] |]) |> connect (Machine (m, port))
+    let subscribe (c:Context.T) (m:Machine) (port:int) () = c |> create (Sub [ ""B ]) |> connect (Machine (m, port))
     let publish (c:Context.T) (n:Network) (port:int) () = c |> create Pub |> connect (Network (n, port))
     let request (c:Context.T) (m:Machine) (port:int) () = c |> create Req |> connect (Machine (m, port))
     let reply (c:Context.T) (n:Network) (port:int) () = c |> create Rep |> connect (Network (n, port))
