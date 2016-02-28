@@ -5,6 +5,10 @@ module Unit =
 
 module Property =
   type TestAttribute = NUnit.Framework.TestAttribute
+  type PerformanceTestAttribute () =
+    //inherit NUnit.Framework.TestAttribute ()
+    inherit NUnit.Framework.IgnoreAttribute ("Performance test")
+
   let property = FsCheck.Check.QuickThrowOnFailure
 
   let [<Test>] ``A message serialized and deserialized stays the same`` () =
@@ -31,7 +35,7 @@ module Property =
     let requester = FSzmq.Agent.startRequester context FSzmq.Machine.Localhost 12348
     property (fun x -> requester |> FSzmq.Agent.request x |> Async.RunSynchronously = x + 1)
 
-  let [<Test>] ``Creating many agents will work easily`` () =
+  let [<PerformanceTest>] ``Creating many agents will work easily`` () =
     let numAgents = 90 (* actually twice as much *)
     let agents =
       [0uy..(byte numAgents)]
