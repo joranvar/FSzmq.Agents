@@ -47,6 +47,16 @@ module Agent =
   module Socket =
     type S = fszmq.Socket * System.Threading.SynchronizationContext
     type Connection = | Network of Network * int | Machine of Machine * int
+    type Type = | Pull | Push | Sub | Pub | Req | Rep
+
+    let create (t:Type) (c:Context.T) =
+      c |> match t with
+           | Pull -> fszmq.Context.pull
+           | Push -> fszmq.Context.push
+           | Sub -> fszmq.Context.sub
+           | Pub -> fszmq.Context.pub
+           | Req -> fszmq.Context.req
+           | Rep -> fszmq.Context.rep
     let connect (c:Connection) (s:fszmq.Socket) =
       c |> function
         | Network (n, p) -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" p)
@@ -100,18 +110,13 @@ module Agent =
         | :? fszmq.ZMQError as e when e.Message = "Interrupted system call" -> return! requester f (Some s) t
         | e -> printfn "requester<%A,%A>: %A" typeof<'t> typeof<'u> e; raise e
       }
-    let pull (c:Context.T) (m:Machine) (port:int) () =
-      fszmq.Context.pull c |> connect (Machine (m, port))
-    let push (c:Context.T) (n:Network) (port:int) () =
-      fszmq.Context.push c |> connect (Network (n, port))
+    let pull (c:Context.T) (m:Machine) (port:int) () = c |> create Pull |> connect (Machine (m, port))
+    let push (c:Context.T) (n:Network) (port:int) () = c |> create Push |> connect (Network (n, port))
     let subscribe (c:Context.T) (m:Machine) (port:int) () =
-      fszmq.Context.sub c |> Do (fun s -> fszmq.Socket.subscribe s [| [||] |]) |> connect (Machine (m, port))
-    let publish (c:Context.T) (n:Network) (port:int) () =
-      fszmq.Context.pub c |> connect (Network (n, port))
-    let request (c:Context.T) (m:Machine) (port:int) () =
-      fszmq.Context.req c |> connect (Machine (m, port))
-    let reply (c:Context.T) (n:Network) (port:int) () =
-      fszmq.Context.rep c |> connect (Network (n, port))
+      c |> create Sub |> Do (fun s -> fszmq.Socket.subscribe s [| [||] |]) |> connect (Machine (m, port))
+    let publish (c:Context.T) (n:Network) (port:int) () = c |> create Pub |> connect (Network (n, port))
+    let request (c:Context.T) (m:Machine) (port:int) () = c |> create Req |> connect (Machine (m, port))
+    let reply (c:Context.T) (n:Network) (port:int) () = c |> create Rep |> connect (Network (n, port))
 
   let startPuller<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver<'t> (Socket.pull c m port) None)
   let startPusher<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender<'t> (Socket.push c n port) None)
