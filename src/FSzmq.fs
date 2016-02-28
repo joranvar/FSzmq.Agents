@@ -46,10 +46,17 @@ module Agent =
   type T<'t> = MailboxProcessor<'t>
   module Socket =
     type S = fszmq.Socket * System.Threading.SynchronizationContext
+    type Connection = | Network of Network * int | Machine of Machine * int
+    let connect (c:Connection) (s:fszmq.Socket) =
+      c |> function
+        | Network (n, p) -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" p)
+        | Machine (m, p) -> fszmq.Socket.connect s (sprintf "tcp://127.0.0.1:%d" p)
+      s, System.Threading.SynchronizationContext.Current
     let send (s:S) msg = async { do! Async.SwitchToContext (snd s)
                                  fszmq.Socket.send (fst s) msg }
     let recv (s:S) = async { do! Async.SwitchToContext (snd s)
                              return fszmq.Socket.recv (fst s) }
+
     let ensureSocket (f:unit->S) (s:S option) = s |> Option.orLazyDefault f
     let rec receiver<'t> f s (t:T<'t>) = async {
       let s = s |> ensureSocket f
@@ -69,19 +76,6 @@ module Agent =
         | :? fszmq.ZMQError as e when e.Message = "Interrupted system call" -> return! sender f (Some s) t
         | e -> printfn "sender<%A>: %A" typeof<'t> e; raise e
       }
-    let pull (c:Context.T) (m:Machine) (port:int) () =
-      fszmq.Context.pull c
-      |> Do (fun s -> fszmq.Socket.connect s (sprintf "tcp://127.0.0.1:%d" port)), System.Threading.SynchronizationContext.Current
-    let push (c:Context.T) (n:Network) (port:int) () =
-      fszmq.Context.push c
-      |> Do (fun s -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" port)), System.Threading.SynchronizationContext.Current
-    let subscribe (c:Context.T) (m:Machine) (port:int) () =
-      fszmq.Context.sub c
-      |> Do (fun s -> fszmq.Socket.subscribe s [| [||] |])
-      |> Do (fun s -> fszmq.Socket.connect s (sprintf "tcp://127.0.0.1:%d" port)), System.Threading.SynchronizationContext.Current
-    let publish (c:Context.T) (n:Network) (port:int) () =
-      fszmq.Context.pub c
-      |> Do (fun s -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" port)), System.Threading.SynchronizationContext.Current
     type ReqRep<'t,'u> = 't * AsyncReplyChannel<'u>
     let rec replyer<'t,'u> f s (callback:'t->'u Async) (t:T<ReqRep<'t,'u>>) = async {
       let s = s |> ensureSocket f
@@ -106,12 +100,18 @@ module Agent =
         | :? fszmq.ZMQError as e when e.Message = "Interrupted system call" -> return! requester f (Some s) t
         | e -> printfn "requester<%A,%A>: %A" typeof<'t> typeof<'u> e; raise e
       }
+    let pull (c:Context.T) (m:Machine) (port:int) () =
+      fszmq.Context.pull c |> connect (Machine (m, port))
+    let push (c:Context.T) (n:Network) (port:int) () =
+      fszmq.Context.push c |> connect (Network (n, port))
+    let subscribe (c:Context.T) (m:Machine) (port:int) () =
+      fszmq.Context.sub c |> Do (fun s -> fszmq.Socket.subscribe s [| [||] |]) |> connect (Machine (m, port))
+    let publish (c:Context.T) (n:Network) (port:int) () =
+      fszmq.Context.pub c |> connect (Network (n, port))
     let request (c:Context.T) (m:Machine) (port:int) () =
-      fszmq.Context.req c
-      |> Do (fun s -> fszmq.Socket.connect s (sprintf "tcp://127.0.0.1:%d" port)), System.Threading.SynchronizationContext.Current
+      fszmq.Context.req c |> connect (Machine (m, port))
     let reply (c:Context.T) (n:Network) (port:int) () =
-      fszmq.Context.rep c
-      |> Do (fun s -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" port)), System.Threading.SynchronizationContext.Current
+      fszmq.Context.rep c |> connect (Network (n, port))
 
   let startPuller<'t> (c:Context.T) (m:Machine) (port:int) : T<'t> = T<'t>.Start (Socket.receiver<'t> (Socket.pull c m port) None)
   let startPusher<'t> (c:Context.T) (n:Network) (port:int) : T<'t> = T<'t>.Start (Socket.sender<'t> (Socket.push c n port) None)
