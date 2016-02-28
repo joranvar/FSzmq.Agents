@@ -30,3 +30,14 @@ module Property =
     let replyer = FSzmq.Agent.startReplyer context FSzmq.Network.Localhost 12348 (fun i -> async {return i + 1})
     let requester = FSzmq.Agent.startRequester context FSzmq.Machine.Localhost 12348
     property (fun x -> requester |> FSzmq.Agent.request x |> Async.RunSynchronously = x + 1)
+
+  let [<Test>] ``Creating many agents will work easily`` () =
+    let numAgents = 90 (* actually twice as much *)
+    let agents =
+      [0uy..(byte numAgents)]
+      |> List.map (fun i -> i, ( FSzmq.Agent.startPusher context FSzmq.Network.Localhost (int i + 12000)
+                               , FSzmq.Agent.startPuller context FSzmq.Machine.Localhost (int i + 12000) ))
+      |> Map.ofList
+    property (fun b x -> let (pusher, puller) = agents |> Map.find (byte (abs (b % numAgents)))
+                         pusher |> FSzmq.Agent.send x
+                         puller |> FSzmq.Agent.receive |> Async.RunSynchronously = x)
