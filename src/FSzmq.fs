@@ -58,11 +58,12 @@ module Agent =
            | Pub -> fszmq.Context.pub
            | Req -> fszmq.Context.req
            | Rep -> fszmq.Context.rep
-    let connect (c:Connection) (s:fszmq.Socket) =
+       , System.Threading.SynchronizationContext.Current
+    let connect (c:Connection) (s:S) =
       c |> function
-        | Network (n, p) -> fszmq.Socket.bind s (sprintf "tcp://127.0.0.1:%d" p)
-        | Machine (m, p) -> fszmq.Socket.connect s (sprintf "tcp://127.0.0.1:%d" p)
-      s, System.Threading.SynchronizationContext.Current
+        | Network (n, p) -> fszmq.Socket.bind (fst s) (sprintf "tcp://127.0.0.1:%d" p)
+        | Machine (m, p) -> fszmq.Socket.connect (fst s) (sprintf "tcp://127.0.0.1:%d" p)
+      s
     let send (s:S) msg = async { do! Async.SwitchToContext (snd s)
                                  fszmq.Socket.send (fst s) msg }
     let recv (s:S) = async { do! Async.SwitchToContext (snd s)
