@@ -58,7 +58,7 @@ module Agent =
         return! receiver f (Some s) t
       with
         | :? fszmq.ZMQError as e when e.Message = "Interrupted system call" -> return! receiver f (Some s) t
-        | e -> printfn "receiver<%A>: %A" typeof<'t> e
+        | e -> printfn "receiver<%A>: %A" typeof<'t> e; raise e
       }
     let rec sender<'t> f s (t:T<'t>) = async {
       let s = s |> ensureSocket f
@@ -67,7 +67,7 @@ module Agent =
         return! sender f (Some s) t
       with
         | :? fszmq.ZMQError as e when e.Message = "Interrupted system call" -> return! sender f (Some s) t
-        | e -> printfn "sender<%A>: %A" typeof<'t> e
+        | e -> printfn "sender<%A>: %A" typeof<'t> e; raise e
       }
     let pull (c:Context.T) (m:Machine) (port:int) () =
       fszmq.Context.pull c
@@ -92,7 +92,7 @@ module Agent =
         return! replyer f (Some s) callback t
       with
         | :? fszmq.ZMQError as e when e.Message = "Interrupted system call" -> return! replyer f (Some s) callback t
-        | e -> printfn "replyer<%A,%A>: %A" typeof<'t> typeof<'u> e
+        | e -> printfn "replyer<%A,%A>: %A" typeof<'t> typeof<'u> e; raise e
       }
     let rec requester<'t,'u> f s (t:T<ReqRep<'t,'u>>) = async {
       let s = s |> ensureSocket f
@@ -104,7 +104,7 @@ module Agent =
         return! requester f (Some s) t
       with
         | :? fszmq.ZMQError as e when e.Message = "Interrupted system call" -> return! requester f (Some s) t
-        | e -> printfn "requester<%A,%A>: %A" typeof<'t> typeof<'u> e
+        | e -> printfn "requester<%A,%A>: %A" typeof<'t> typeof<'u> e; raise e
       }
     let request (c:Context.T) (m:Machine) (port:int) () =
       fszmq.Context.req c
