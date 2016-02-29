@@ -3,6 +3,19 @@ module Tests
 module Unit =
   type TestAttribute = NUnit.Framework.TestAttribute
 
+module Exploratory =
+  type TestAttribute = NUnit.Framework.TestAttribute
+
+  let [<Test>] ``An address looks right`` () =
+    printfn "%s"
+      (FSzmq.Connection.Network (FSzmq.Connection.LocalhostNetwork, 987) |> FSzmq.Connection.toString)
+    printfn "%s"
+      (FSzmq.Connection.Network (FSzmq.Connection.InterNetwork, 654) |> FSzmq.Connection.toString)
+    printfn "%s"
+      (FSzmq.Connection.Machine (FSzmq.Connection.Localhost, 123) |> FSzmq.Connection.toString)
+    printfn "%s"
+      (FSzmq.Connection.Machine (FSzmq.Connection.Other (System.Net.IPAddress [| 84uy; 65uy; 187uy; 45uy |]), 123) |> FSzmq.Connection.toString)
+
 module Property =
   type TestAttribute = NUnit.Framework.TestAttribute
   type PerformanceTestAttribute () =
