@@ -88,10 +88,7 @@ module Agent =
                              return fszmq.Socket.recv (fst s) }
 
     let ensureSocket (f:unit->S) (s:S option) =
-      try
-        s |> Option.orLazyDefault f
-      with
-        | e -> printfn "ensureSocket: %A" e; raise e
+      try s |> Option.orLazyDefault f with e -> printfn "ensureSocket: %A" e; raise e
     let rec receiver<'t> f s (t:T<'t>) = async {
       let s = s |> ensureSocket f
       try
