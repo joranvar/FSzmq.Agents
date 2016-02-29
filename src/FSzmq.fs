@@ -95,17 +95,13 @@ module Agent =
 
     let rec receiver<'t> f s (t:T<'t>) = async {
       let s = s |> ensureSocket f
-      try
-        do! s |> recv |> Async.map (Message.toT<'t> >> t.Post)
-        return! receiver f (Some s) t
+      try do! s |> recv |> Async.map (Message.toT<'t> >> t.Post)
       with e -> handleZMQInterrupt (sprintf "receiver<%A>" typeof<'t>) e
       return! receiver f (Some s) t
     }
     let rec sender<'t> f s (t:T<'t>) = async {
       let s = s |> ensureSocket f
-      try
-        do! t.Receive () |> Async.bind (Message.ofT<'t> >> send s)
-        return! sender f (Some s) t
+      try do! t.Receive () |> Async.bind (Message.ofT<'t> >> send s)
       with e -> handleZMQInterrupt (sprintf "sender<%A>" typeof<'t>) e
       return! sender f (Some s) t
       }
@@ -117,7 +113,6 @@ module Agent =
         let! request = s |> recv
         let! reply = request |> Message.toT<'t> |> callback
         do! reply |> Message.ofT<'u> |> send s
-        return! replyer f (Some s) callback t
       with e -> handleZMQInterrupt (sprintf "replyer<%A,%A>" typeof<'t> typeof<'u>) e
       return! replyer f (Some s) callback t
       }
@@ -128,7 +123,6 @@ module Agent =
         do! request |> Message.ofT<'t> |> send s
         let! result = s |> recv
         result |> Message.toT<'u> |> reply.Reply
-        return! requester f (Some s) t
       with e -> handleZMQInterrupt (sprintf "requester<%A,%A>" typeof<'t> typeof<'u>) e
       return! requester f (Some s) t
       }
