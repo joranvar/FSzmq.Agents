@@ -30,9 +30,11 @@ UNITTEST = $(call NUNIT_mkTestTarget,$(Tests.dll))
 $(Tests.dll): test/Tests.fs $(FsCheck) $(FSzmq.dll) $(fszmq) /nix/store/6p5jbgy54yanvx22m75c1xan4gn2y3b9-zeromq-4.1.4/lib/libzmq.so
 $(FSzmq.dll): FSzmq.fs $(fszmq) /nix/store/6p5jbgy54yanvx22m75c1xan4gn2y3b9-zeromq-4.1.4/lib/libzmq.so
 
-
 .PHONY: all
-all: $(UNITTEST)
+all: $(FSzmq.dll)
+
+.PHONY: test
+test: $(UNITTEST)
 
 .PHONY: clean
 clean: cleanall
